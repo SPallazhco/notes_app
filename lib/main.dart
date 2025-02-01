@@ -11,10 +11,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Notes App',
       debugShowCheckedModeBanner: false,
+      title: 'Notes App',
       initialRoute: AppRoutes.login,
-      onGenerateRoute: AppRoutes.generateRoute,
+      routes: AppRoutes.getRoutes(),
     );
   }
 }

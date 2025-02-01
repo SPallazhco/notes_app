@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:notes_app/config/app_routes.dart';
 import 'package:notes_app/constants/app_assets.dart';
 import 'package:notes_app/widgets/custom_button.dart';
 import 'package:notes_app/widgets/custom_text_tield.dart';
@@ -63,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Input de usuario
                   CustomTextField(
                     icon: Icons.person,
-                    hintText: "Usuario",
+                    labelText: "Usuario",
                     controller: userController,
                   ),
                   const SizedBox(height: 10),
@@ -71,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Input de contraseña
                   CustomTextField(
                     icon: Icons.lock,
-                    hintText: "Contraseña",
+                    labelText: "Contraseña",
                     isPassword: true,
                     controller: passwordController,
                   ),
@@ -87,6 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         textColor: Colors.white,
                         onPressed: () {
                           String userInput = userController.text;
+                          String passwordUser = passwordController.text;
+                          print("Usuario ingresado: $passwordUser");
                           print("Usuario ingresado: $userInput");
                         },
                       ),
@@ -95,8 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         bgColor: Colors.white,
                         textColor: Colors.deepPurple,
                         onPressed: () {
-                          String passwordUser = passwordController.text;
-                          print("Usuario ingresado: $passwordUser");
+                          Navigator.pushNamed(context, AppRoutes.register);
                         },
                       ),
                     ],
