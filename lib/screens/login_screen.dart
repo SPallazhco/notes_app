@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:notes_app/config/app_routes.dart';
 import 'package:notes_app/constants/app_assets.dart';
-import 'package:notes_app/widgets/custom_button.dart';
+import 'package:notes_app/services/auth_service.dart';
+import 'package:notes_app/utils/validators.dart';
 import 'package:notes_app/widgets/custom_text_tield.dart';
+import 'package:notes_app/widgets/custom_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,98 +14,107 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController userController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
-  @override
-  void dispose() {
-    userController.dispose();
-    super.dispose();
+  Future<void> handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    bool? response = await _authService.loginUser(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response ? "Bienvenido" : "Error al iniciar sesión"),
+        backgroundColor: response ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (response) {
+      Navigator.pushNamed(context, AppRoutes.notes);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        fit: StackFit.expand,
         children: [
-          // Fondo con imagen
-          Image.asset(
-            AppAssets.mainBody,
-            fit: BoxFit.cover,
+          Positioned.fill(
+            child: Image.asset(
+              AppAssets.mainBody,
+              fit: BoxFit.cover,
+            ),
           ),
-
-          // Contenido centrado
           Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              width: 350,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Imagen de usuario
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: AssetImage(
-                      AppAssets.userAvatar,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Card(
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                color: Colors.white.withValues(alpha: 0.9),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: AssetImage(AppAssets.userAvatar),
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
+                          icon: Icons.email,
+                          labelText: "Email",
+                          controller: emailController,
+                          validator: Validators.validateEmail,
+                        ),
+                        const SizedBox(height: 15),
+                        CustomTextField(
+                          icon: Icons.lock,
+                          labelText: "Contraseña",
+                          controller: passwordController,
+                          isPassword: true,
+                          validator: Validators.validatePassword,
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: CustomButton(
+                            text: "Iniciar Sesión",
+                            bgColor: Colors.deepPurple,
+                            textColor: Colors.white,
+                            isLoading: _isLoading,
+                            onPressed: _isLoading ? null : handleLogin,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.register);
+                          },
+                          child: const Text(
+                            "¿No tienes cuenta? Regístrate",
+                            style: TextStyle(color: Colors.deepPurple),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Input de usuario
-                  CustomTextField(
-                    icon: Icons.person,
-                    labelText: "Usuario",
-                    controller: userController,
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Input de contraseña
-                  CustomTextField(
-                    icon: Icons.lock,
-                    labelText: "Contraseña",
-                    isPassword: true,
-                    controller: passwordController,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Botones
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      CustomButton(
-                        text: "Ingreso",
-                        bgColor: Colors.deepPurple,
-                        textColor: Colors.white,
-                        onPressed: () {
-                          String userInput = userController.text;
-                          String passwordUser = passwordController.text;
-                          print("Usuario ingresado: $passwordUser");
-                          print("Usuario ingresado: $userInput");
-                        },
-                      ),
-                      CustomButton(
-                        text: "Registro",
-                        bgColor: Colors.white,
-                        textColor: Colors.deepPurple,
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.register);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),

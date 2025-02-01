@@ -5,6 +5,7 @@ class CustomButton extends StatelessWidget {
   final Color bgColor;
   final Color textColor;
   final VoidCallback? onPressed;
+  final bool isLoading; // Nuevo parámetro
 
   const CustomButton({
     super.key,
@@ -12,6 +13,7 @@ class CustomButton extends StatelessWidget {
     required this.bgColor,
     required this.textColor,
     this.onPressed,
+    this.isLoading = false, // Valor predeterminado en false
   });
 
   @override
@@ -23,11 +25,19 @@ class CustomButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      onPressed: onPressed ?? () => print("$text button pressed"),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
+      onPressed:
+          isLoading ? null : onPressed, // Deshabilita el botón si está en carga
+      child: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2),
+            )
+          : Text(
+              text,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
     );
   }
 }

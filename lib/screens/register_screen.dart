@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:notes_app/constants/app_assets.dart';
 import 'package:notes_app/services/auth_service.dart';
 import 'package:notes_app/utils/validators.dart';
+import 'package:notes_app/widgets/custom_button.dart';
 import 'package:notes_app/widgets/custom_text_tield.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -113,23 +114,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // Botón de Registro
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
+                          child: CustomButton(
+                            text: "Registrarse",
+                            bgColor: Colors.deepPurple,
+                            textColor: Colors.white,
+                            isLoading: _isLoading,
                             onPressed: _isLoading ? null : handleRegister,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              backgroundColor: Colors.deepPurple,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white)
-                                : const Text(
-                                    "Registrarse",
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.white),
-                                  ),
                           ),
                         ),
                         const SizedBox(height: 10),
