@@ -24,23 +24,31 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    try {
+      bool? response = await _authService.loginUser(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response ? "Bienvenido" : "Error al iniciar sesión"),
+          backgroundColor: response ? Colors.green : Colors.red,
+        ),
+      );
 
-    bool? response = await _authService.loginUser(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
-
-    setState(() => _isLoading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(response ? "Bienvenido" : "Error al iniciar sesión"),
-        backgroundColor: response ? Colors.green : Colors.red,
-      ),
-    );
-
-    if (response) {
-      Navigator.pushNamed(context, AppRoutes.notes);
+      if (response) {
+        Navigator.pushNamed(context, AppRoutes.notes);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al iniciar sesión, verifique sus credenciales"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      throw Exception("Error al obtener notas: $e");
     }
   }
 

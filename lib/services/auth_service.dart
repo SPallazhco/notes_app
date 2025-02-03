@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:notes_app/models/note.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/api_routes.dart';
@@ -35,6 +36,16 @@ class AuthService {
     } on DioException catch (e) {
       print("Error de login: ${e.response?.data}");
       return false;
+    }
+  }
+
+  Future<List<Note>> fetchNotes() async {
+    try {
+      final response = await _apiService.get(ApiRoutes.getNotes);
+      List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => Note.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception("Error al obtener notas: $e");
     }
   }
 
