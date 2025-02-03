@@ -66,7 +66,12 @@ class _NotesScreenState extends State<NotesScreen> {
         }
       });
     } catch (e) {
-      print("Error al actualizar estado: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al actualizar nota ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -83,7 +88,12 @@ class _NotesScreenState extends State<NotesScreen> {
         });
       }
     } catch (e) {
-      print("Error al agregar nota: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al agregar nota: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
