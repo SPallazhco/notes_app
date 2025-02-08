@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      throw Exception("Error al obtener notas: $e");
+      throw Exception("Error de login: $e");
     }
   }
 

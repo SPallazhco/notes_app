@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:notes_app/config/app_routes.dart';
+import 'package:notes_app/services/auth_service.dart';
 import '../services/api_service.dart';
 import '../models/note.dart';
 import '../widgets/add_note_modal.dart';
@@ -13,6 +15,7 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   late Future<List<Note>> _notesFuture;
 
   List<Note> newNotes = [];
@@ -40,7 +43,12 @@ class _NotesScreenState extends State<NotesScreen> {
 
       return notes;
     } catch (e) {
-      print("Error al obtener notas: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error al obtener notas ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
       return [];
     }
   }
@@ -108,15 +116,46 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  Future<void> _logout() async {
+    await _authService.logout();
+    // Navegar a la pantalla de inicio de sesión
+    if (mounted) {
+      Navigator.popAndPushNamed(context, AppRoutes.login);
+    }
+  }
+
+  void _navigateToProfile() {
+    // Navigator.pushNamed(
+    //   context,
+    //   AppRoutes.editProfile,
+    // );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notas'),
+        automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {},
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout();
+              } else if (value == 'profile') {
+                _navigateToProfile();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Text('Editar perfil'),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Text('Cerrar sesión'),
+              ),
+            ],
           ),
         ],
       ),

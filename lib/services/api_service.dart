@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:notes_app/config/app_routes.dart';
+import 'package:notes_app/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_routes.dart';
 
@@ -7,7 +10,11 @@ class ApiService {
     baseUrl: ApiRoutes.baseUrl, // URL base centralizada
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
-    headers: {"Content-Type": "application/json"},
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
   ));
 
   Future<dynamic> put(String url, Map<String, dynamic> data,
@@ -36,7 +43,8 @@ class ApiService {
       {Map<String, dynamic>? queryParameters}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('refreshToken');
+      String? token =
+          url.contains('auth') ? null : prefs.getString('refreshToken');
 
       final response = await _dio.post(
         url,
@@ -72,6 +80,71 @@ class ApiService {
     } on DioException catch (e) {
       throw Exception(
           "Error en la solicitud GET: ${e.response?.data ?? e.message}");
+    }
+  }
+
+  Future<bool> refreshTokenIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? refreshToken = prefs.getString('refreshToken');
+
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await _dio.post(
+        '/auth/refresh-token',
+        data: {'refreshToken': refreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        String newRefreshToken = response.data['refreshToken'];
+        await prefs.setString('refreshToken', newRefreshToken);
+
+        print('✅ Token actualizado correctamente');
+        return true;
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        print('⚠️ Refresh token inválido, redirigiendo al login.');
+
+        // 🔹 Mostrar mensaje antes de redirigir
+        _showSessionExpiredMessage();
+
+        // 🔹 Redirigir al login
+        Future.delayed(const Duration(seconds: 2), () {
+          MyApp.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+            AppRoutes.login,
+            (route) => false,
+          );
+        });
+
+        return false;
+      } else {
+        print('❌ Error en la solicitud de refresh: ${e.message}');
+      }
+    } catch (e) {
+      print('❌ Error inesperado: $e');
+    }
+
+    return false;
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('accessToken');
+    await prefs.remove('refreshToken');
+    print('🔑 Tokens eliminados. Sesión cerrada.');
+  }
+
+  /// 🔹 Mostrar mensaje cuando la sesión ha caducado
+  void _showSessionExpiredMessage() {
+    final context = MyApp.navigatorKey.currentContext;
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Tu sesión ha caducado. Inicia sesión nuevamente.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
