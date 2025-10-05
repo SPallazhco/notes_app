@@ -147,10 +147,10 @@ class _NotesScreenState extends State<NotesScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: Text('Editar perfil'),
-              ),
+              // const PopupMenuItem(
+              //   value: 'profile',
+              //   child: Text('Editar perfil'),
+              // ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Text('Cerrar sesión'),
