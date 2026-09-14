@@ -22,14 +22,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
 
   Future<void> handleRegister() async {
+    final email = Validators.normalizeEmail(emailController.text);
+    if (emailController.text != email) {
+      emailController.value = TextEditingValue(
+        text: email,
+        selection: TextSelection.collapsed(offset: email.length),
+      );
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     String? response = await _authService.registerUser(
-      emailController.text.trim(),
-      passwordController.text.trim(),
+      email,
+      passwordController.text,
     );
+
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _isLoading = false);
 
@@ -45,6 +57,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             backgroundColor: Colors.red),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -70,71 +90,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 color: Colors.white.withValues(alpha: 0.9),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Imagen de usuario en círculo
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: AssetImage(AppAssets.userAvatar),
-                        ),
-                        const SizedBox(height: 20),
+                  child: AutofillGroup(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Imagen de usuario en círculo
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: AssetImage(AppAssets.userAvatar),
+                          ),
+                          const SizedBox(height: 20),
 
-                        // Campo de Email
-                        CustomTextField(
+                          // Campo de Email
+                          CustomTextField(
                             icon: Icons.email,
                             labelText: "Email",
                             controller: emailController,
-                            validator: Validators.validateEmail),
-                        const SizedBox(height: 15),
-
-                        // Campo de Contraseña
-                        CustomTextField(
-                          icon: Icons.lock,
-                          labelText: "Contraseña",
-                          controller: passwordController,
-                          isPassword: true,
-                          validator: Validators.validatePassword,
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        CustomTextField(
-                          icon: Icons.lock,
-                          labelText: "Confirmar Contraseña",
-                          controller: confirmPasswordController,
-                          isPassword: true,
-                          validator: (value) =>
-                              Validators.validateConfirmPassword(
-                                  value, passwordController.text),
-                        ),
-                        const SizedBox(height: 20),
-                        // Botón de Registro
-                        SizedBox(
-                          width: double.infinity,
-                          child: CustomButton(
-                            text: "Registrarse",
-                            bgColor: Colors.deepPurple,
-                            textColor: Colors.white,
-                            isLoading: _isLoading,
-                            onPressed: _isLoading ? null : handleRegister,
+                            isEmail: true,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validateEmail,
                           ),
-                        ),
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 15),
 
-                        // Botón para volver al login
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text(
-                            "¿Ya tienes una cuenta? Inicia sesión",
-                            style: TextStyle(color: Colors.deepPurple),
+                          // Campo de Contraseña
+                          CustomTextField(
+                            icon: Icons.lock,
+                            labelText: "Contraseña",
+                            controller: passwordController,
+                            isPassword: true,
+                            autofillHints: const [AutofillHints.newPassword],
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validatePassword,
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 15),
+
+                          CustomTextField(
+                            icon: Icons.lock,
+                            labelText: "Confirmar Contraseña",
+                            controller: confirmPasswordController,
+                            isPassword: true,
+                            autofillHints: const [AutofillHints.newPassword],
+                            textInputAction: TextInputAction.done,
+                            validator: (value) =>
+                                Validators.validateConfirmPassword(
+                                    value, passwordController.text),
+                          ),
+                          const SizedBox(height: 20),
+                          // Botón de Registro
+                          SizedBox(
+                            width: double.infinity,
+                            child: CustomButton(
+                              text: "Registrarse",
+                              bgColor: Colors.deepPurple,
+                              textColor: Colors.white,
+                              isLoading: _isLoading,
+                              onPressed: _isLoading ? null : handleRegister,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Botón para volver al login
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text(
+                              "¿Ya tienes una cuenta? Inicia sesión",
+                              style: TextStyle(color: Colors.deepPurple),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

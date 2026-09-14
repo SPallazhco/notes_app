@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:notes_app/config/app_routes.dart';
 import 'package:notes_app/constants/app_assets.dart';
 import 'package:notes_app/services/auth_service.dart';
@@ -21,14 +22,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
 
   Future<void> handleLogin() async {
+    final email = Validators.normalizeEmail(emailController.text);
+    if (emailController.text != email) {
+      emailController.value = TextEditingValue(
+        text: email,
+        selection: TextSelection.collapsed(offset: email.length),
+      );
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
     try {
       bool? response = await _authService.loginUser(
-        emailController.text.trim(),
-        passwordController.text.trim(),
+        email,
+        passwordController.text,
       );
+
+      if (!mounted) {
+        return;
+      }
+
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -38,9 +52,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response) {
+        TextInput.finishAutofillContext();
         Navigator.pushNamed(context, AppRoutes.notes);
       }
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -50,6 +69,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       throw Exception("Error de login: $e");
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -74,52 +100,58 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: Colors.white.withValues(alpha: 0.9),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: AssetImage(AppAssets.userAvatar),
-                        ),
-                        const SizedBox(height: 20),
-                        CustomTextField(
-                          icon: Icons.email,
-                          labelText: "Email",
-                          controller: emailController,
-                          validator: Validators.validateEmail,
-                        ),
-                        const SizedBox(height: 15),
-                        CustomTextField(
-                          icon: Icons.lock,
-                          labelText: "Contraseña",
-                          controller: passwordController,
-                          isPassword: true,
-                          validator: Validators.validatePassword,
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: CustomButton(
-                            text: "Iniciar Sesión",
-                            bgColor: Colors.deepPurple,
-                            textColor: Colors.white,
-                            isLoading: _isLoading,
-                            onPressed: _isLoading ? null : handleLogin,
+                  child: AutofillGroup(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: AssetImage(AppAssets.userAvatar),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.register);
-                          },
-                          child: const Text(
-                            "¿No tienes cuenta? Regístrate",
-                            style: TextStyle(color: Colors.deepPurple),
+                          const SizedBox(height: 20),
+                          CustomTextField(
+                            icon: Icons.email,
+                            labelText: "Email",
+                            controller: emailController,
+                            isEmail: true,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validateEmail,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 15),
+                          CustomTextField(
+                            icon: Icons.lock,
+                            labelText: "Contraseña",
+                            controller: passwordController,
+                            isPassword: true,
+                            autofillHints: const [AutofillHints.password],
+                            textInputAction: TextInputAction.done,
+                            validator: Validators.validatePassword,
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: CustomButton(
+                              text: "Iniciar Sesión",
+                              bgColor: Colors.deepPurple,
+                              textColor: Colors.white,
+                              isLoading: _isLoading,
+                              onPressed: _isLoading ? null : handleLogin,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, AppRoutes.register);
+                            },
+                            child: const Text(
+                              "¿No tienes cuenta? Regístrate",
+                              style: TextStyle(color: Colors.deepPurple),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

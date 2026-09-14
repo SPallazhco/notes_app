@@ -1,11 +1,15 @@
 class Validators {
+  static String normalizeEmail(String? value) => value?.trim() ?? '';
+
   static String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
+    final email = normalizeEmail(value);
+
+    if (email.isEmpty) {
       return "Por favor ingresa tu email";
     }
-    String emailPattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
-    RegExp regex = RegExp(emailPattern);
-    if (!regex.hasMatch(value)) {
+    const emailPattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+    final regex = RegExp(emailPattern);
+    if (!regex.hasMatch(email)) {
       return "Ingresa un email válido";
     }
     return null;
