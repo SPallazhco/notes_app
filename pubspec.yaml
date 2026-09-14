@@ -1,13 +1,12 @@
 name: notes_app
 description: "A new Flutter project."
 
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: ^3.6.1
-
 
 dependencies:
   flutter:
@@ -32,11 +31,10 @@ flutter:
     - assets/images/main_body.jpg
     - assets/images/notas_body.jpg
 
-
 flutter_launcher_icons:
   image_path: "assets/icons/easy_notes_icon.png"
-  android: true 
-  ios: true 
+  android: true
+  ios: true
   min_sdk_android: 21
   remove_alpha_ios: true
   background_color_ios: "#ffffff"
