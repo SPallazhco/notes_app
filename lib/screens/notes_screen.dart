@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:notes_app/config/app_routes.dart';
 import 'package:notes_app/services/auth_service.dart';
@@ -7,16 +9,19 @@ import '../widgets/add_note_modal.dart';
 import '../widgets/notes_column.dart';
 
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({super.key});
+  final ApiService? apiService;
+
+  const NotesScreen({super.key, this.apiService});
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  final ApiService _apiService = ApiService();
+  late final ApiService _apiService;
   final AuthService _authService = AuthService();
   late Future<List<Note>> _notesFuture;
+  final Set<int> _updatingNoteIds = {};
 
   List<Note> newNotes = [];
   List<Note> processingNotes = [];
@@ -25,24 +30,35 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   void initState() {
     super.initState();
+    _apiService = widget.apiService ?? ApiService();
     _notesFuture = fetchNotes();
   }
 
   Future<List<Note>> fetchNotes() async {
     try {
       final List<dynamic> response = await _apiService.get('/notes');
-      List<Note> notes = response.map((json) => Note.fromJson(json)).toList();
+      final notes = response.map((json) => Note.fromJson(json)).toList();
+      final uniqueNotes = <int, Note>{
+        for (final note in notes) note.id: note,
+      }.values.toList();
+
+      if (!mounted) {
+        return uniqueNotes;
+      }
 
       setState(() {
-        newNotes = notes.where((note) => note.status == 'NEW').toList();
+        newNotes = uniqueNotes.where((note) => note.status == 'NEW').toList();
         processingNotes =
-            notes.where((note) => note.status == 'PROCESSING').toList();
+            uniqueNotes.where((note) => note.status == 'PROCESSING').toList();
         archivedNotes =
-            notes.where((note) => note.status == 'ARCHIVED').toList();
+            uniqueNotes.where((note) => note.status == 'ARCHIVED').toList();
       });
 
-      return notes;
+      return uniqueNotes;
     } catch (e) {
+      if (!mounted) {
+        return [];
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error al obtener notas ${e.toString()}"),
@@ -53,33 +69,63 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
+  void _removeNoteById(int id) {
+    newNotes.removeWhere((note) => note.id == id);
+    processingNotes.removeWhere((note) => note.id == id);
+    archivedNotes.removeWhere((note) => note.id == id);
+  }
+
+  void _addNoteToItsColumn(Note note) {
+    if (note.status == 'NEW') {
+      newNotes.add(note);
+    } else if (note.status == 'PROCESSING') {
+      processingNotes.add(note);
+    } else if (note.status == 'ARCHIVED') {
+      archivedNotes.add(note);
+    }
+  }
+
   Future<void> _updateNoteStatus(Note note, String newStatus) async {
+    if (_updatingNoteIds.contains(note.id) || note.status == newStatus) {
+      return;
+    }
+
+    final previousNote = note;
+    final updatedNote = note.copyWith(status: newStatus);
+
+    setState(() {
+      _updatingNoteIds.add(note.id);
+      _removeNoteById(note.id);
+      _addNoteToItsColumn(updatedNote);
+    });
+
     try {
       await _apiService.put('/notes/${note.id}/status', {},
           queryParameters: {'status': newStatus});
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
-        newNotes.remove(note);
-        processingNotes.remove(note);
-        archivedNotes.remove(note);
-
-        note = note.copyWith(status: newStatus);
-
-        if (newStatus == 'NEW') {
-          newNotes.add(note);
-        } else if (newStatus == 'PROCESSING') {
-          processingNotes.add(note);
-        } else if (newStatus == 'ARCHIVED') {
-          archivedNotes.add(note);
-        }
+        _removeNoteById(note.id);
+        _addNoteToItsColumn(previousNote);
       });
-    } catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error al actualizar nota ${e.toString()}"),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _updatingNoteIds.remove(note.id);
+        });
+      } else {
+        _updatingNoteIds.remove(note.id);
+      }
     }
   }
 
@@ -90,12 +136,22 @@ class _NotesScreenState extends State<NotesScreen> {
         'description': description,
       });
 
+      if (!mounted) {
+        return;
+      }
+
       if (response != null) {
+        final note = Note.fromJson(response);
         setState(() {
-          newNotes.add(Note.fromJson(response));
+          _removeNoteById(note.id);
+          _addNoteToItsColumn(note);
         });
       }
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error al agregar nota: ${e.toString()}"),
@@ -172,22 +228,30 @@ class _NotesScreenState extends State<NotesScreen> {
                 NotesColumn(
                   title: 'Nuevas',
                   notes: newNotes,
+                  status: 'NEW',
                   color: Colors.blue,
                   onAdd: _showAddNoteModal,
-                  onNoteDropped: (note) => _updateNoteStatus(note, 'NEW'),
+                  isNoteUpdating: (note) => _updatingNoteIds.contains(note.id),
+                  onNoteDropped: (note) =>
+                      unawaited(_updateNoteStatus(note, 'NEW')),
                 ),
                 NotesColumn(
                   title: 'En proceso',
                   notes: processingNotes,
+                  status: 'PROCESSING',
                   color: Colors.orange,
+                  isNoteUpdating: (note) => _updatingNoteIds.contains(note.id),
                   onNoteDropped: (note) =>
-                      _updateNoteStatus(note, 'PROCESSING'),
+                      unawaited(_updateNoteStatus(note, 'PROCESSING')),
                 ),
                 NotesColumn(
                   title: 'Archivadas',
                   notes: archivedNotes,
+                  status: 'ARCHIVED',
                   color: Colors.green,
-                  onNoteDropped: (note) => _updateNoteStatus(note, 'ARCHIVED'),
+                  isNoteUpdating: (note) => _updatingNoteIds.contains(note.id),
+                  onNoteDropped: (note) =>
+                      unawaited(_updateNoteStatus(note, 'ARCHIVED')),
                 ),
               ],
             );

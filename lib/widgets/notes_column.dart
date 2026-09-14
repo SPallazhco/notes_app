@@ -4,17 +4,21 @@ import '../models/note.dart';
 class NotesColumn extends StatelessWidget {
   final String title;
   final List<Note> notes;
+  final String status;
   final Color color;
   final VoidCallback? onAdd;
-  final Function(Note)? onNoteDropped;
+  final ValueChanged<Note>? onNoteDropped;
+  final bool Function(Note)? isNoteUpdating;
 
   const NotesColumn({
     super.key,
     required this.title,
     required this.notes,
+    required this.status,
     required this.color,
     this.onAdd,
     this.onNoteDropped,
+    this.isNoteUpdating,
   });
 
   @override
@@ -22,13 +26,18 @@ class NotesColumn extends StatelessWidget {
     return Expanded(
       // Se usa Expanded para evitar desbordamiento
       child: DragTarget<Note>(
-        onAccept: (note) => onNoteDropped?.call(note),
+        onWillAcceptWithDetails: (details) {
+          final note = details.data;
+          return note.status != status &&
+              !(isNoteUpdating?.call(note) ?? false);
+        },
+        onAcceptWithDetails: (details) => onNoteDropped?.call(details.data),
         builder: (context, candidateData, rejectedData) {
           return Container(
             margin: const EdgeInsets.all(8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -60,9 +69,9 @@ class NotesColumn extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 10),
                     child: FloatingActionButton(
                       onPressed: onAdd,
-                      child: const Icon(Icons.add),
                       mini: true, // Hace el botón más pequeño
                       backgroundColor: color,
+                      child: const Icon(Icons.add),
                     ),
                   ),
               ],
@@ -74,8 +83,12 @@ class NotesColumn extends StatelessWidget {
   }
 
   Widget _buildDraggableCard(Note note) {
+    final isUpdating = isNoteUpdating?.call(note) ?? false;
+
     return Draggable<Note>(
+      key: ValueKey(note.id),
       data: note,
+      maxSimultaneousDrags: isUpdating ? 0 : 1,
       feedback: Material(
         elevation: 5,
         borderRadius: BorderRadius.circular(12),
@@ -85,7 +98,10 @@ class NotesColumn extends StatelessWidget {
         opacity: 0.3,
         child: _noteCard(note),
       ),
-      child: _noteCard(note),
+      child: Opacity(
+        opacity: isUpdating ? 0.6 : 1,
+        child: _noteCard(note),
+      ),
     );
   }
 
